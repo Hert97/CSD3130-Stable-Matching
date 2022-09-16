@@ -4,6 +4,8 @@
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
+#include <queue>
+#include <unordered_set>
 
 //parse one line of text from file into single preferences list
 std::vector<std::string> ParseLine(std::string line, const char spiltSymbol = ';')
@@ -28,7 +30,7 @@ std::string ExtractLabel(std::string pList)
 	if (index != std::string::npos)
 	{
 		label = pList.substr(0, index);
-		pList.erase(0, label.size());
+		pList.erase(0, label.size() + 1);
 	}
 	return label;
 }
@@ -41,30 +43,27 @@ std::vector<std::string> ExtractPreferences(std::string pList)
 	std::vector<std::string> result;
 
 	if (start != std::string::npos && end != std::string::npos)
-		pref = pList.substr(start + 1, end - 1);
+		pref = pList.substr(start + 1, end- start - 1);
 	while (!pref.empty())
 	{
 		size_t index = pref.find_first_of(',');
 		if (index != std::string::npos)
 		{
-			// last entry does not have a comma seperator so take wad is left
-			size_t lastEnd = pref.find_last_of('>');
-			pref.erase(lastEnd, 1);
-			result.emplace_back(pref);
-			return result;
+			result.emplace_back(pref.substr(0,index));
 		}
-		result.emplace_back(pref.substr(0, index));
+		else // take what is left as last element doest not have a comma
+		{
+			result.emplace_back(pref);
+			break;
+		}
 		pref.erase(0, index + 1);
+
 	}
-	return  result;
+	return result;
 }
 
-void StableMatching()
-{
 
-}
-
-void FindIndexOfStudentInHospitalPrefs(const std::vector<std::string>& hosPrefs,  std::pair<int,std::string>& studentIdxName)
+void FindIndexOfStudentInHospitalPrefs(const std::vector<std::string>& hosPrefs, std::pair<int, std::string>& studentIdxName)
 {
 	for (size_t i = 0; i < hosPrefs.size(); ++i)
 	{
@@ -72,15 +71,22 @@ void FindIndexOfStudentInHospitalPrefs(const std::vector<std::string>& hosPrefs,
 			studentIdxName.first = i;
 	}
 }
+struct StudentData
+{
+	uint32_t studentID{ 0 };
+	int score{ 0 };
+};
 
 struct Hospital
 {
 	std::vector<std::string> preferences;
-	std::vector<std::string> positions;
+	std::vector<StudentData> positions;
 	std::string name;
 
 	Hospital() = default;
 	Hospital(std::string& _name) : preferences{}, positions{}, name(_name) {}
+
+	bool HasAvailablePositions() const noexcept { return positions.size() < 2; }
 };
 
 struct Student
@@ -122,7 +128,7 @@ int main(int argc, char* argv[])
 
 		for (const std::string& s : pList)
 		{
-			std::string label = ExtractLabel(line);
+			std::string label = ExtractLabel(s);
 			std::vector<std::string> pref = ExtractPreferences(s);
 
 			if (count == 0)
@@ -136,87 +142,132 @@ int main(int argc, char* argv[])
 				students.back().preferences = std::move(pref);
 			}
 		}
-
 		++count;
+
 	}
 
+	/*printf("%s\n", "Hospitals");
+	for (const Hospital& h : hospitals)
+	{
+		printf("%s:<", h.name.c_str());
+		for (const std::string& p : h.preferences)
+		{
+			printf("%s,", p.c_str());
+		}
+		printf("%c\n", '>');
+	}
+	printf("%s\n", "Students");
+	for (const Student& s : students)
+	{
+		printf("%s:<", s.name.c_str());
+		for (const std::string& p : s.preferences)
+		{
+			printf("%s,", p.c_str());
+		}
+		printf("%c\n", '>');
+	}
+	return 0;*/
 	/*
 	* C:<5,1,2,4,3>;M:<5,3,1,2,4>;
 	  1:<C,M>;2:<C,M>;3:<C,M>;4<M,C>;5:<M,C>;
 	*/
-	for (const auto& student : students)
+
+
+
+	//setup queue of free students id
+	//while free students not empty
+	//	while freestudent preference list not empty
+		//get a freestudent preference list
+		//get first on preference list that has yet to propose to
+		//if that choosen hospital is free 
+			// accept offer add them to hospital pairs list	
+		//else 
+			//get the choosen hospital preferencelist
+			//get score of students by using index from preferencelist
+			//sort them by score remove the lowest from hospital
+			//add the removed student id back to free student queue
+		//remove freestudent's first preference
+	//pop queue id
+
+
+
+	auto GetStudentScore = [](const std::vector<std::string>& hospitalPref,const Student& student)
 	{
-		if (!student.preferences.empty())
+		for (size_t i = 0; i < hospitalPref.size(); ++i)
 		{
-			std::string preferredHospitalName = student.preferences[0];
-			auto preferredHospital = (std::find_if(hospitals.begin(), hospitals.end(), [&preferredHospitalName](const Hospital& lhs)
-				{
-					return (lhs.name == preferredHospitalName);
-				}));
-
-			if (preferredHospital->positions.size() < 2)
+			if (hospitalPref[i] == student.name)
 			{
-				preferredHospital->positions.push_back(student.name); // pair
-
-				// @TODO Remove preferred hospital from student's preferences
+				return static_cast<int>(hospitalPref.size() - i);
 			}
-			else // hospital is full
-			{
-				for (const auto& pos : preferredHospital->positions)
-				{
-					preferredHospital->preferences.back();
-				}
-
-				std::pair<int, std::string> student1{ -1 , preferredHospital->positions[0] };
-				std::pair<int, std::string> student2{ -1 , preferredHospital->positions[1] };
-				std::pair<int, std::string> student3{ -1 ,student.name };
-
-				FindIndexOfStudentInHospitalPrefs(preferredHospital->preferences, student1);
-				FindIndexOfStudentInHospitalPrefs(preferredHospital->preferences, student2);
-				FindIndexOfStudentInHospitalPrefs(preferredHospital->preferences, student3);
-
-				// Replace existing students with preferred student
-				int leastPrefStudent = std::max(student1.first, std::max(student2.first, student3.first));
-				std::string nameOfLeastPrefStudent = "";
-				if (leastPrefStudent == student1.first)
-					nameOfLeastPrefStudent = student1.second;
-				else if (leastPrefStudent == student2.first)
-					nameOfLeastPrefStudent = student2.second;
-				else
-					nameOfLeastPrefStudent = student.name;
-
-				// @TODO Check if least preferred student is in preferredHospital.positions
-				// If inside, remove from positions, insert new student
-			}
-
 		}
+		return -100;
+	};
+
+	auto FindHospitalByName = [&hospitals](const std::string& hospitalName) ->  Hospital*
+	{
+		for ( Hospital& h : hospitals)
+		{
+			if (h.name == hospitalName)
+				return &h;
+		}
+		return nullptr;
+	}; 
+	std::queue<uint32_t> freeStudents;
+	std::unordered_set<uint32_t> paired;
+	//populate the queue
+	for (size_t i = 0; i < students.size(); ++i)
+		freeStudents.emplace((uint32_t)i);
+	while (!freeStudents.empty())
+	{
+		uint32_t studentID = freeStudents.front();
+		std::vector<std::string>& pref = students[studentID].preferences;
+		while (!pref.empty())
+		{
+			Hospital& h = *FindHospitalByName(pref[0]); 
+			StudentData data{};
+			data.studentID = studentID;
+			if (h.HasAvailablePositions())
+			{
+				//make pairing
+				h.positions.emplace_back(data);
+				paired.insert(studentID);
+				pref.erase(pref.begin());
+				break;
+			}
+			
+			{
+				//place student temporary in for sorting afterwards perform removal
+				h.positions.emplace_back(data);
+				for (StudentData& d : h.positions)
+				{
+					d.score = GetStudentScore(h.preferences, students[d.studentID]);
+				}
+				//sort students by score // the least fav will be place at the back of vector for fast removal
+				std::sort(h.positions.begin(), h.positions.end(), [](const StudentData& lhs, const StudentData& rhs) 
+				{
+					return lhs.score > rhs.score;
+				});
+				paired.insert(studentID);
+
+				if(paired.find(studentID) == paired.end())
+					freeStudents.emplace(h.positions.back().studentID);
+				//unpairing
+				paired.erase(h.positions.back().studentID);
+				h.positions.erase(--h.positions.end());
+			}
+			pref.erase(pref.begin());
+		}
+		freeStudents.pop();
 	}
 
-
-	/*constexpr uint8_t numSlots = 2;
-	std::vector<uint8_t> freeSlots(hospitals.size());
-	std::fill_n(freeSlots.data(), freeSlots.size(), numSlots);
-	std::vector<bool> freeStudents(students.size());
-	std::vector<std::pair<std::string, std::string>> pairs;
-
-	for (const auto& student : students)
+	//results
+	for (const Hospital& h : hospitals)
 	{
-		uint32_t id = nameToPrefMap[student];
-		std::vector<std::string>& studentPreferences = dataBase[id];
-
-		for (const auto& studentPref : studentPreferences)
+		for (const StudentData& d : h.positions)
 		{
-			uint32_t id = nameToPrefMap[studentPref];
-			if (freeSlots[id] > 0)
-			{
-				pairs.push_back(std::make_pair(student, studentPref));
-				if (freeSlots[id] != 0)
-					--freeSlots[id];
-			}
+			printf("Pair: %s,%s\n", h.name.c_str() ,students[d.studentID].name.c_str());
 		}
-	}*/
-
-
+	}
 
 	/*#ifdef _DEBUG
 	for (const auto& prefList : dataBase)
