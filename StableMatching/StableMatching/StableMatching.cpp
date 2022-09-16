@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <queue>
 
+/*==========================================Parsing Data==========================================*/
 //parse one line of text from file into single preferences list
 std::vector<std::string> ParseLine(std::string line, const char spiltSymbol = ';')
 {
@@ -59,6 +60,7 @@ std::vector<std::string> ExtractPreferences(std::string pList)
 	}
 	return result;
 }
+/*==========================================Parsing Data==========================================*/
 
 
 void FindIndexOfStudentInHospitalPrefs(const std::vector<std::string>& hosPrefs, std::pair<int, std::string>& studentIdxName)
@@ -96,21 +98,22 @@ struct Student
 	Student(std::string& _name) : preferences{}, name(_name) {}
 };
 
-int main(int argc, char* argv[])
+int main()
 {
+	std::string fileName{};
+	std::cout << "Example File Name: \"input_0.txt\", \"input_1.txt\", \"input_2.txt\"\n\n";
+	std::cout << "Enter File Name: ";
+	std::cin >> fileName;
 
-	if (argc != 2)
-	{
-		printf("%s\n %s\n", "Invalid agrument count", "Provide preference list file as 2nd agrument");
-	}
-
-	std::ifstream file{ argv[1] };
+	std::string filePath = "../Files/" + fileName;
+	std::ifstream file{ filePath };
 
 	if (!file)
 	{
-		printf("%s:%s\n", "Unable to open file:", argv[1]);
+		printf("%s:%s\n", "Unable to open file:", filePath.c_str());
 		std::exit(0);
 	}
+	std::cout << "\n";
 
 	char temp[512];
 
