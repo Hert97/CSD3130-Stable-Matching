@@ -2,10 +2,8 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <unordered_map>
 #include <algorithm>
 #include <queue>
-#include <unordered_set>
 
 //parse one line of text from file into single preferences list
 std::vector<std::string> ParseLine(std::string line, const char spiltSymbol = ';')
@@ -43,13 +41,13 @@ std::vector<std::string> ExtractPreferences(std::string pList)
 	std::vector<std::string> result;
 
 	if (start != std::string::npos && end != std::string::npos)
-		pref = pList.substr(start + 1, end- start - 1);
+		pref = pList.substr(start + 1, end - start - 1);
 	while (!pref.empty())
 	{
 		size_t index = pref.find_first_of(',');
 		if (index != std::string::npos)
 		{
-			result.emplace_back(pref.substr(0,index));
+			result.emplace_back(pref.substr(0, index));
 		}
 		else // take what is left as last element doest not have a comma
 		{
@@ -146,7 +144,7 @@ int main(int argc, char* argv[])
 
 	}
 
-	/*printf("%s\n", "Hospitals");
+	printf("%s\n", "Hospitals");
 	for (const Hospital& h : hospitals)
 	{
 		printf("%s:<", h.name.c_str());
@@ -166,11 +164,6 @@ int main(int argc, char* argv[])
 		}
 		printf("%c\n", '>');
 	}
-	return 0;*/
-	/*
-	* C:<5,1,2,4,3>;M:<5,3,1,2,4>;
-	  1:<C,M>;2:<C,M>;3:<C,M>;4<M,C>;5:<M,C>;
-	*/
 
 
 
@@ -191,7 +184,7 @@ int main(int argc, char* argv[])
 
 
 
-	auto GetStudentScore = [](const std::vector<std::string>& hospitalPref,const Student& student)
+	auto GetStudentScore = [](const std::vector<std::string>& hospitalPref, const Student& student)
 	{
 		for (size_t i = 0; i < hospitalPref.size(); ++i)
 		{
@@ -205,15 +198,15 @@ int main(int argc, char* argv[])
 
 	auto FindHospitalByName = [&hospitals](const std::string& hospitalName) ->  Hospital*
 	{
-		for ( Hospital& h : hospitals)
+		for (Hospital& h : hospitals)
 		{
 			if (h.name == hospitalName)
 				return &h;
 		}
 		return nullptr;
-	}; 
+	};
 	std::queue<uint32_t> freeStudents;
-	std::unordered_set<uint32_t> paired;
+	std::vector<bool> isPaired(students.size());
 	//populate the queue
 	for (size_t i = 0; i < students.size(); ++i)
 		freeStudents.emplace((uint32_t)i);
@@ -223,50 +216,78 @@ int main(int argc, char* argv[])
 		std::vector<std::string>& pref = students[studentID].preferences;
 		while (!pref.empty())
 		{
-			Hospital& h = *FindHospitalByName(pref[0]); 
+			Hospital& h = *FindHospitalByName(pref[0]);
 			StudentData data{};
 			data.studentID = studentID;
 			if (h.HasAvailablePositions())
 			{
 				//make pairing
 				h.positions.emplace_back(data);
-				paired.insert(studentID);
+				isPaired[studentID] = true;
+				//paired.insert(studentID);
 				pref.erase(pref.begin());
 				break;
 			}
-			
-			{
-				//@TODO change (cannot use this sort method cuz will cause duplicate students)
-				//place student temporary in for sorting afterwards perform removal
-				h.positions.emplace_back(data);
-				for (StudentData& d : h.positions)
-				{
-					d.score = GetStudentScore(h.preferences, students[d.studentID]);
-				}
-				//sort students by score // the least fav will be place at the back of vector for fast removal
-				std::sort(h.positions.begin(), h.positions.end(), [](const StudentData& lhs, const StudentData& rhs) 
-				{
-					return lhs.score > rhs.score;
-				});
-				paired.insert(studentID);
 
-				if(paired.find(studentID) == paired.end())
-					freeStudents.emplace(h.positions.back().studentID);
-				//unpairing
-				paired.erase(h.positions.back().studentID);
-				h.positions.pop_back();
+
+
+			data.score = GetStudentScore(h.preferences, students[studentID]);
+			for (StudentData& d : h.positions)
+			{
+				d.score = GetStudentScore(h.preferences, students[d.studentID]);
+			}
+			//sort positions by score
+			std::sort(h.positions.begin(), h.positions.end(), [](const StudentData& lhs, const StudentData& rhs)
+			{
+				return lhs.score > rhs.score;
+			});
+			//overwrite worst match only if they are not paired
+			if (h.positions.back().score < data.score && !isPaired[data.studentID])
+			{
+
+				//put back to queue
+				freeStudents.emplace(h.positions.back().studentID);
+				isPaired[h.positions.back().studentID] = false;
+				//paired.erase(h.positions.back().studentID);
+
+				h.positions.back() = data;
+				isPaired[data.studentID] = true;
+				//paired.insert(data.studentID);
+
 			}
 			pref.erase(pref.begin());
+
+			//@TODO change (cannot use this sort method cuz will cause duplicate students)
+			//place student temporary in for sorting afterwards perform removal
+			//h.positions.emplace_back(data);
+			//for (StudentData& d : h.positions)
+			//{
+			//	d.score = GetStudentScore(h.preferences, students[d.studentID]);
+			//}
+			////sort students by score // the least fav will be place at the back of vector for fast removal
+			//std::sort(h.positions.begin(), h.positions.end(), [](const StudentData& lhs, const StudentData& rhs) 
+			//{
+			//	return lhs.score > rhs.score;
+			//});
+			//isPaired[studentID] = true;
+
+			//if(!isPaired[studentID])
+			//	freeStudents.emplace(h.positions.back().studentID);
+			////unpairing
+			//isPaired[h.positions.back().studentID] = false;
+			//h.positions.pop_back();
+			//pref.erase(pref.begin());
 		}
 		freeStudents.pop();
 	}
 
 	//results
+	printf("\n%s:\n", "Results");
 	for (const Hospital& h : hospitals)
 	{
 		for (const StudentData& d : h.positions)
 		{
-			printf("Pair: %s,%s\n", h.name.c_str() ,students[d.studentID].name.c_str());
+			printf("Pair: %s,%s\n", h.name.c_str(), students[d.studentID].name.c_str());
 		}
 	}
 
