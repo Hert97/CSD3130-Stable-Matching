@@ -155,7 +155,11 @@ int main(int argc, char* argv[])
 				}));
 
 			if (preferredHospital->positions.size() < 2)
+			{
 				preferredHospital->positions.push_back(student.name); // pair
+
+				// @TODO Remove preferred hospital from student's preferences
+			}
 			else // hospital is full
 			{
 				for (const auto& pos : preferredHospital->positions)
@@ -171,6 +175,7 @@ int main(int argc, char* argv[])
 				FindIndexOfStudentInHospitalPrefs(preferredHospital->preferences, student2);
 				FindIndexOfStudentInHospitalPrefs(preferredHospital->preferences, student3);
 
+				// Replace existing students with preferred student
 				int leastPrefStudent = std::max(student1.first, std::max(student2.first, student3.first));
 				std::string nameOfLeastPrefStudent = "";
 				if (leastPrefStudent == student1.first)
@@ -180,7 +185,8 @@ int main(int argc, char* argv[])
 				else
 					nameOfLeastPrefStudent = student.name;
 
-
+				// @TODO Check if least preferred student is in preferredHospital.positions
+				// If inside, remove from positions, insert new student
 			}
 
 		}
