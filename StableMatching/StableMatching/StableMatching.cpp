@@ -96,8 +96,7 @@ int main(int argc,char* argv[])
         }
     }
 
-
-    #ifdef DEBUG
+    #ifdef _DEBUG
     for (const auto& prefList : dataBase)
     {
         for (const auto& data : prefList)
