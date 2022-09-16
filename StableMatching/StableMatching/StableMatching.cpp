@@ -236,6 +236,7 @@ int main(int argc, char* argv[])
 			}
 			
 			{
+				//@TODO change (cannot use this sort method cuz will cause duplicate students)
 				//place student temporary in for sorting afterwards perform removal
 				h.positions.emplace_back(data);
 				for (StudentData& d : h.positions)
@@ -253,7 +254,7 @@ int main(int argc, char* argv[])
 					freeStudents.emplace(h.positions.back().studentID);
 				//unpairing
 				paired.erase(h.positions.back().studentID);
-				h.positions.erase(--h.positions.end());
+				h.positions.pop_back();
 			}
 			pref.erase(pref.begin());
 		}
