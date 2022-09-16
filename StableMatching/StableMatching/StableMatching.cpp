@@ -219,42 +219,45 @@ int main(int argc, char* argv[])
 			Hospital& h = *FindHospitalByName(pref[0]);
 			StudentData data{};
 			data.studentID = studentID;
-			if (h.HasAvailablePositions())
+
+			if (!isPaired[studentID])
 			{
-				//make pairing
-				h.positions.emplace_back(data);
-				isPaired[studentID] = true;
-				//paired.insert(studentID);
-				pref.erase(pref.begin());
-				break;
+				if (h.HasAvailablePositions())
+				{
+					//make pairing
+					h.positions.emplace_back(data);
+					isPaired[studentID] = true;
+					//paired.insert(studentID);
+					pref.erase(pref.begin());
+					break;
+				}
+
+				data.score = GetStudentScore(h.preferences, students[studentID]);
+				for (StudentData& d : h.positions)
+				{
+					d.score = GetStudentScore(h.preferences, students[d.studentID]);
+				}
+				//sort positions by score
+				std::sort(h.positions.begin(), h.positions.end(), [](const StudentData& lhs, const StudentData& rhs)
+				{
+					return lhs.score > rhs.score;
+				});
+				//overwrite worst match only if they are not paired
+				if (h.positions.back().score < data.score)
+				{
+
+					//put back to queue
+					freeStudents.emplace(h.positions.back().studentID);
+					isPaired[h.positions.back().studentID] = false;
+					//paired.erase(h.positions.back().studentID);
+
+					h.positions.back() = data;
+					isPaired[data.studentID] = true;
+					//paired.insert(data.studentID);
+
+				}
 			}
 
-
-
-			data.score = GetStudentScore(h.preferences, students[studentID]);
-			for (StudentData& d : h.positions)
-			{
-				d.score = GetStudentScore(h.preferences, students[d.studentID]);
-			}
-			//sort positions by score
-			std::sort(h.positions.begin(), h.positions.end(), [](const StudentData& lhs, const StudentData& rhs)
-			{
-				return lhs.score > rhs.score;
-			});
-			//overwrite worst match only if they are not paired
-			if (h.positions.back().score < data.score && !isPaired[data.studentID])
-			{
-
-				//put back to queue
-				freeStudents.emplace(h.positions.back().studentID);
-				isPaired[h.positions.back().studentID] = false;
-				//paired.erase(h.positions.back().studentID);
-
-				h.positions.back() = data;
-				isPaired[data.studentID] = true;
-				//paired.insert(data.studentID);
-
-			}
 			pref.erase(pref.begin());
 
 			//@TODO change (cannot use this sort method cuz will cause duplicate students)
@@ -290,18 +293,6 @@ int main(int argc, char* argv[])
 			printf("Pair: %s,%s\n", h.name.c_str(), students[d.studentID].name.c_str());
 		}
 	}
-
-	/*#ifdef _DEBUG
-	for (const auto& prefList : dataBase)
-	{
-		for (const auto& data : prefList)
-		{
-			printf("%s,",data.c_str());
-		}
-		printf("\n");
-	}
-	#endif*/
-
 
 	return 0;
 }
